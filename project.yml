@@ -1,0 +1,30 @@
+# XcodeGen spec: `brew install xcodegen && xcodegen` generates Barbudo.xcodeproj.
+name: Barbudo
+options:
+  bundleIdPrefix: app.barbudo
+  deploymentTarget:
+    iOS: "17.0"
+packages:
+  Barbudo:
+    path: .
+targets:
+  BarbudoApp:
+    type: application
+    platform: iOS
+    sources: [App]
+    dependencies:
+      - package: Barbudo
+        product: BarbudoUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.barbudo.ios
+        PRODUCT_NAME: Barbudo
+        MARKETING_VERSION: "0.2"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Barbudo
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        TARGETED_DEVICE_FAMILY: "1"
+        DEVELOPMENT_TEAM: "" # set your Apple team ID to run on a device

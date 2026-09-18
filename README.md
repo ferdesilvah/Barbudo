@@ -2,7 +2,42 @@
 
 Multiplayer iOS version of *Barbudo*, the González del Riego family card game.
 
-## Status: Milestone 1 — rules engine
+## Status: Milestone 2 — playable offline vs. bots
+
+Run the app:
+
+```
+brew install xcodegen   # once
+xcodegen                # makes Barbudo.xcodeproj from project.yml
+open Barbudo.xcodeproj  # pick an iPhone simulator, ⌘R
+```
+
+No XcodeGen? In Xcode: File › New › Project › iOS App (SwiftUI) named Barbudo, then
+File › Add Package Dependencies › Add Local… › this folder, link `BarbudoUI`, and replace the
+generated `App` struct with `App/BarbudoApp.swift`.
+
+### BarbudoUI (SwiftUI, iOS 17+)
+
+| File | What it holds |
+| --- | --- |
+| `Theme.swift` | Palette, rounded type, the chunky outline + drop-shadow look, button styles |
+| `TableDecor.swift` | Wood grain table and the woven runner |
+| `CardView.swift` | Cards, card backs, deck with trump tucked underneath |
+| `SeatBadge.swift` | Avatar, card count, name tag, bid chips (fichas) |
+| `HandView.swift` | Fanned hand: sorted with trump last, legal cards lift on tap, tap again to play |
+| `BidPanel.swift` | Bid picker; the hook rule's forbidden number is crossed out with a reason |
+| `TableView.swift` | The table seen from your chair, 3–6 players, trick area, callouts, status hints |
+| `ScoreViews.swift` | Handwritten scoresheet, end-of-round card, game-over card |
+| `RootView.swift` | Lobby (pick 3–6 players), mascot, entry point |
+| `LocalGameController.swift` | Runs the engine with bots, paces them, holds finished tricks on screen briefly |
+
+The UI reads only `PlayerView`, so Milestone 4 can swap `LocalGameController` for a network
+controller without touching the views.
+
+**Fonts:** the design uses Fredoka, Nunito and Caveat (all SIL Open Font License). Until
+they're added to the app bundle (`UIAppFonts`), the UI falls back to the rounded system font.
+
+## Milestone 1 — rules engine
 
 `BarbudoCore` is a pure Swift state machine for the full game: seat draw, cut, deal,
 trump, bidding with the hook rule, trick play, and scoring. Zero dependencies; it builds
@@ -49,6 +84,5 @@ Seats: `players[i + 1]` sits to the left (clockwise) of `players[i]`. After the 
 
 ## Next milestones
 
-2. SwiftUI table vs. 3 bots, offline
 3. Vapor server (`BarbudoServer`) + `BarbudoProtocol` wire messages
 4. Online rooms, reconnect, bot cover
