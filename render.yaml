@@ -1,0 +1,10 @@
+# One-click deploy on Render (render.com): New › Blueprint › pick this repo.
+services:
+  - type: web
+    name: barbudo
+    runtime: node
+    rootDir: web
+    plan: free          # sleeps after ~15 min idle; the first visit then takes ~1 min to wake
+    buildCommand: npm install --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /healthz

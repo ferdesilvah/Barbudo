@@ -1,8 +1,17 @@
 # Barbudo
 
-Multiplayer iOS version of *Barbudo*, the González del Riego family card game.
+Multiplayer version of *Barbudo*, the González del Riego family card game.
 
-## Status: Milestone 2 — playable offline vs. bots
+## Status: Milestone 3 — online multiplayer in the browser
+
+The main path is now **`web/`**: a Node server plus a browser client, so the family plays from
+their phones with a shared link, without the App Store. See [`web/README.md`](web/README.md) to
+run it locally or put it online for free.
+
+The Swift packages below (rules engine + SwiftUI app) remain for a possible native app later;
+both implementations follow the same rules and pass the same scenarios.
+
+## Swift app (Milestone 2) — playable offline vs. bots
 
 Run the app:
 
