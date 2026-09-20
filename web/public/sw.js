@@ -2,19 +2,51 @@
 //
 // Render's free plan puts the server to sleep after ~15 minutes without visitors, and the next
 // person to open the link waits about a minute while it wakes up. The catch: that wait happens on
-// the request for index.html itself, so without a cached copy the browser can only show a blank
-// tab — our own loading screen has nothing to load from. Keeping the shell here flips that around:
-// the page paints straight away and client.js explains what's going on while the server wakes.
+// the request for index.html itself, so without a cached copy the browser only gets Render's own
+// "service waking up" page — our loading screen has nothing to load from. Keeping the shell here
+// flips that around: the page paints straight away and client.js explains what's going on while
+// the server wakes.
 
-const VERSION = 'barbudo-v1';
+const VERSION = 'barbudo-v2';
 const SHELL = `${VERSION}-shell`;
 const FONTS = `${VERSION}-fonts`;
 const ASSETS = ['/index.html', '/style.css', '/online.css', '/client.js', '/icon.svg', '/manifest.webmanifest'];
 
+// Render answers with its waking-up page — a normal 200 full of HTML — for anything that arrives
+// while the service is asleep. Cache that over our shell and the family would get Render's page
+// from then on, so every response is checked for being ours before it's kept.
+async function ours(res, req) {
+  if (res.type === 'opaque') return true;                     // cross-origin fonts; nothing to read
+  const type = res.headers.get('content-type') || '';
+  const path = new URL(req.url).pathname;
+  if (path.endsWith('.js')) return type.includes('javascript');
+  if (path.endsWith('.css')) return type.includes('css');
+  if (path.endsWith('.svg')) return type.includes('svg');
+  if (path.endsWith('.webmanifest')) return type.includes('json') || type.includes('manifest');
+  if (path === '/' || path.endsWith('.html')) {
+    return type.includes('html') && (await res.text()).includes('id="boot"');
+  }
+  return true;
+}
+
+function keep(cacheName, req, res) {
+  const forCheck = res.clone(), forCache = res.clone();
+  ours(forCheck, req)
+    .then(ok => (ok ? caches.open(cacheName).then(c => c.put(req, forCache)) : null))
+    .catch(() => {});
+}
+
+// Always ask the network too, so a deploy lands on the next visit at the latest.
+function revalidate(cacheName, req) {
+  return fetch(req).then(res => {
+    if (res && (res.ok || res.type === 'opaque')) keep(cacheName, req, res);
+    return res;
+  });
+}
+
 self.addEventListener('install', e => {
-  // Cache each file on its own: a partial shell still beats a blank tab.
-  e.waitUntil(caches.open(SHELL)
-    .then(c => Promise.all(ASSETS.map(u => c.add(u).catch(() => {}))))
+  // Each file on its own: a partial shell still beats Render's page.
+  e.waitUntil(Promise.all(ASSETS.map(u => revalidate(SHELL, new Request(u)).catch(() => {})))
     .then(() => self.skipWaiting()));
 });
 
@@ -25,17 +57,6 @@ self.addEventListener('activate', e => {
     await self.clients.claim();
   })());
 });
-
-// Always ask the network too, so a deploy lands on the next visit at the latest.
-function revalidate(cache, req) {
-  return fetch(req).then(res => {
-    if (res && (res.ok || res.type === 'opaque')) {
-      const copy = res.clone();
-      caches.open(cache).then(c => c.put(req, copy)).catch(() => {});
-    }
-    return res;
-  });
-}
 
 self.addEventListener('fetch', e => {
   const req = e.request;
