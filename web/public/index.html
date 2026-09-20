@@ -12,6 +12,34 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icon.svg">
+<style>
+/* The waking screen carries its own colours and type: it has to look right before style.css
+   and the Google fonts have arrived, which on a cold start is exactly when it's needed. */
+#boot{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;
+  background-color:#B97A4B;
+  background-image:repeating-linear-gradient(90deg,rgba(90,45,15,.10) 0 2px,transparent 2px 38px),repeating-linear-gradient(90deg,rgba(255,230,190,.10) 0 1px,transparent 1px 23px);
+  transition:opacity .3s ease}
+#boot[hidden]{display:none}
+#boot.gone{opacity:0;pointer-events:none}
+.boot-card{width:100%;max-width:340px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:14px;
+  padding:26px 22px;border-radius:24px;border:3px solid #3B2A20;background:#FFF4E0;box-shadow:0 6px 0 rgba(59,42,32,.35);text-align:center}
+.boot-logo{font-family:"Fredoka","Nunito",ui-rounded,system-ui,sans-serif;font-weight:700;font-size:38px;line-height:1;color:#3B2A20}
+.boot-dots{display:flex;gap:9px}
+.boot-dots i{width:15px;height:15px;box-sizing:border-box;border-radius:50%;background:#F2B441;border:2.5px solid #3B2A20;animation:bootHop 1s ease-in-out infinite}
+.boot-dots i:nth-child(2){animation-delay:.15s}
+.boot-dots i:nth-child(3){animation-delay:.3s}
+@keyframes bootHop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-9px)}}
+.boot-slow{display:flex;flex-direction:column;align-items:center;gap:9px;width:100%;animation:bootIn .3s ease}
+@keyframes bootIn{from{opacity:0;transform:translateY(6px)}}
+.boot-title{font-family:"Fredoka","Nunito",ui-rounded,system-ui,sans-serif;font-weight:600;font-size:19px;line-height:1.2;color:#3B2A20}
+.boot-bar{width:100%;height:13px;box-sizing:border-box;border-radius:8px;border:2.5px solid #3B2A20;background:#F6E7C8;overflow:hidden}
+.boot-bar i{display:block;height:100%;background:repeating-linear-gradient(45deg,#D4643A 0 10px,#F2B441 10px 20px);animation:bootSlide .9s linear infinite}
+@keyframes bootSlide{from{background-position:0 0}to{background-position:28.3px 0}}
+.boot-fine{font-family:"Nunito",ui-rounded,system-ui,sans-serif;font-size:13px;font-weight:700;color:#7A5A44;line-height:1.35}
+.boot-secs{font-family:"Fredoka","Nunito",ui-rounded,system-ui,sans-serif;font-weight:600;font-size:14px;color:#3B2A20;background:#F6E7C8;border-radius:10px;padding:1px 9px}
+.boot-secs:empty{display:none}
+@media (prefers-reduced-motion:reduce){#boot,.boot-slow,.boot-dots i,.boot-bar i{animation:none!important;transition:none!important}}
+</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&family=Caveat:wght@600;700&display=swap">
 <link rel="stylesheet" href="/style.css">
@@ -21,6 +49,74 @@
 <div id="app" aria-live="polite"></div>
 <div id="conn" hidden>Reconectando…</div>
 <div id="toast" role="status" hidden></div>
+
+<div id="boot" role="status" aria-live="polite">
+  <div class="boot-card">
+    <svg width="96" height="96" viewBox="0 0 92 92" aria-hidden="true">
+      <circle cx="46" cy="44" r="32" fill="#F6D2A8" stroke="#3B2A20" stroke-width="3.5"/>
+      <path d="M14 44 C14 70 28 86 46 86 C64 86 78 70 78 44 C70 56 60 60 46 60 C32 60 22 56 14 44 Z" fill="#6B3E26" stroke="#3B2A20" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M30 55 C36 49 42 50 46 54 C50 50 56 49 62 55 C56 59 50 58 46 56 C42 58 36 59 30 55 Z" fill="#4A2A1A" stroke="#3B2A20" stroke-width="2.5" stroke-linejoin="round"/>
+      <circle cx="35" cy="38" r="3.6" fill="#3B2A20"/><circle cx="57" cy="38" r="3.6" fill="#3B2A20"/>
+      <circle cx="26" cy="47" r="4.5" fill="#E8927C" opacity=".7"/><circle cx="66" cy="47" r="4.5" fill="#E8927C" opacity=".7"/>
+      <path d="M18 30 C24 12 68 12 74 30 C62 22 30 22 18 30 Z" fill="#6B3E26" stroke="#3B2A20" stroke-width="3.5" stroke-linejoin="round"/>
+    </svg>
+    <div class="boot-logo">Barbudo</div>
+    <div class="boot-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="boot-slow" id="boot-slow" hidden>
+      <div class="boot-title" id="boot-title">Despertando la mesa…</div>
+      <div class="boot-bar" aria-hidden="true"><i></i></div>
+      <div class="boot-fine" id="boot-fine">El servidor se duerme cuando nadie juega. Tarda como un minuto en despertar.</div>
+      <div class="boot-secs" id="boot-secs"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Inline on purpose. On a cold start client.js is itself stuck waiting for the server to wake,
+// so the screen that explains the wait can't depend on it.
+(function () {
+  var el = document.getElementById('boot'), slow = document.getElementById('boot-slow'),
+      title = document.getElementById('boot-title'), fine = document.getElementById('boot-fine'),
+      secs = document.getElementById('boot-secs');
+  var COPY = {
+    first: ['Despertando la mesa…', 'El servidor se duerme cuando nadie juega. Tarda como un minuto en despertar.'],
+    reconnecting: ['Reconectando con la mesa…', 'Se durmió el servidor. Tarda como un minuto en volver.'],
+    offline: ['Sin internet', 'Revisa tu conexión. Seguimos intentando solos.'],
+  };
+  var SLOW_AT = 2500;       // a quick load shouldn't flash an explanation nobody needed
+  var kind = 'first', since = 0, waiting = false, tick = null, timers = [];
+
+  function clear() { timers.forEach(clearTimeout); timers = []; clearInterval(tick); tick = null; }
+  function count() { secs.textContent = Math.round((Date.now() - since) / 1000) + ' s'; }
+  function explain() {
+    var c = COPY[kind] || COPY.first;
+    title.textContent = c[0]; fine.textContent = c[1]; slow.hidden = false;
+    count();                                    // straight away, so the pill is never blank
+    if (!tick) tick = setInterval(count, 1000);
+  }
+  function show(k, delay) {
+    kind = k || kind;
+    if (!waiting) { waiting = true; since = Date.now(); }
+    var now = Date.now(), at = since + (delay || 0), explainAt = since + Math.max(delay || 0, SLOW_AT);
+    clear();
+    timers.push(setTimeout(function () { el.hidden = false; el.classList.remove('gone'); }, Math.max(0, at - now)));
+    timers.push(setTimeout(explain, Math.max(0, explainAt - now)));
+  }
+  function hide() {
+    clear(); waiting = false;
+    el.classList.add('gone');
+    timers.push(setTimeout(function () { el.hidden = true; slow.hidden = true; secs.textContent = ''; }, 320));
+  }
+  window.__boot = { show: show, hide: hide, mode: function (k) { kind = k; if (!slow.hidden) explain(); } };
+  show('first', 0);
+
+  // The shell cache. Plain http on a LAN address (a phone testing against your laptop) isn't a
+  // secure context, so this quietly does nothing there — the app just works the way it always did.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });
+  }
+})();
+</script>
 <script type="module" src="/client.js"></script>
 </body>
 </html>

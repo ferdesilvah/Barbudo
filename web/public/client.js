@@ -23,16 +23,28 @@ const store = {
 const saved = store.get();
 const invitedCode = (location.pathname.match(/^\/m\/([A-Za-z0-9]{5})$/) || [])[1]?.toUpperCase() || null;
 
-const S = { ws: null, online: false, retry: 0, token: saved.token || null, name: saved.name || '', room: null, V: null, screen: 'home' };
+const S = { ws: null, online: false, everOn: false, retry: 0, retryTimer: null, token: saved.token || null,
+            name: saved.name || '', room: null, V: null, screen: 'home' };
 const UI = { sel: null, bid: null, pausing: false, sweeping: false, shown: [], winner: null, callout: null,
              overlay: null, tray: false, reacts: {}, lastSeq: -1, drawTimer: null, pauseTimer: null };
 
 // ─────────────────────────── Connection ───────────────────────────
+// The free plan sleeps after ~15 minutes without visitors and takes about a minute to wake up.
+// While that happens the socket just keeps failing, so we also poll /healthz: a plain GET both
+// triggers the wake-up and tells us the moment the server answers again, instead of sitting out
+// the backoff. `boot` is the waking screen, set up inline in index.html so that it works even
+// before this file has arrived.
+const boot = window.__boot || { show() {}, hide() {}, mode() {} };
+const RECONNECT_WAIT = 4000;   // a blip mid-game only deserves the small banner
+let wakeTimer = null, probing = false;
+
 function connect() {
+  clearTimeout(S.retryTimer);
   const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
   S.ws = ws;
   ws.onopen = () => {
-    S.online = true; S.retry = 0; connEl.hidden = true;
+    S.online = true; S.everOn = true; S.retry = 0; connEl.hidden = true;
+    stopWake(); boot.hide();
     if (S.token) send({ t: 'hello', token: S.token });
     else render();
   };
@@ -40,14 +52,40 @@ function connect() {
   ws.onclose = () => {
     S.online = false;
     if (S.screen !== 'home') connEl.hidden = false;
+    boot.show(navigator.onLine === false ? 'offline' : S.everOn ? 'reconnecting' : 'first',
+              S.everOn ? RECONNECT_WAIT : 0);
+    startWake();
     const wait = Math.min(1000 * 2 ** S.retry++, 8000);
-    setTimeout(connect, wait);
+    S.retryTimer = setTimeout(connect, wait);
   };
 }
-const send = m => { if (S.ws && S.ws.readyState === 1) S.ws.send(JSON.stringify(m)); };
+
+function startWake() { if (!wakeTimer) { wakeTimer = setInterval(pingHealth, 3000); pingHealth(); } }
+function stopWake() { clearInterval(wakeTimer); wakeTimer = null; }
+function pingHealth() {
+  // A sleeping server holds the request open for the whole wake-up, so never stack these.
+  if (probing || S.online || navigator.onLine === false) return;
+  probing = true;
+  fetch('/healthz', { cache: 'no-store' })
+    .then(r => { if (r.ok) retryNow(); })
+    .catch(() => {})
+    .finally(() => { probing = false; });
+}
+function retryNow() {
+  if (S.online || (S.ws && S.ws.readyState <= 1)) return;   // already up, or a socket is on its way
+  S.retry = 0; connect();
+}
+
+const send = m => {
+  if (S.ws && S.ws.readyState === 1) { S.ws.send(JSON.stringify(m)); return true; }
+  toast('Conectando con la mesa… un momento.');
+  return false;
+};
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && S.ws && S.ws.readyState > 1) connect();
 });
+window.addEventListener('online', () => { boot.mode(S.everOn ? 'reconnecting' : 'first'); retryNow(); });
+window.addEventListener('offline', () => { if (!S.online) boot.mode('offline'); });
 
 function onMessage(m) {
   switch (m.t) {
