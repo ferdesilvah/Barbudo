@@ -51,8 +51,9 @@ Nothing else changes: `client.js` sends the socket to `barbudo.onrender.com` whe
 isn't being served by the server itself, so `npm start`, a phone on your wifi and the Render URL
 opened directly all still work untouched. Moving the game server elsewhere means editing
 `GAME_SERVER` at the top of `public/client.js`. Cloudflare Pages or Netlify instead of a Worker:
-publish directory `web/public`, no build command — `public/_redirects` is there for them, since
-they read it and Workers uses `not_found_handling` in `wrangler.jsonc` instead.
+publish directory `web/public`, no build command, and add a `public/_redirects` containing
+`/m/*  /index.html  200` — those two read that file, while a Worker refuses it (it only supports
+real redirects there, not 200 rewrites) and uses `not_found_handling` above instead.
 
 Tables still live in Render's memory, so the first table of the evening still waits for it to wake;
 the difference is that the family now waits on our own screen, with the mascot and an explanation,
@@ -79,7 +80,7 @@ them until they come back. They rejoin by opening the same link on the same phon
 | `public/style.css`, `online.css` | The look from the design canvas. |
 | `public/index.html` | Also holds the waking screen — markup, styles and its little script inline, since on a cold start `client.js` is itself still on its way. |
 | `public/sw.js` | Keeps a copy of the shell so the page opens instantly, and refuses to cache anything that doesn't look like Barbudo. |
-| `public/_redirects` | Tells a static host to answer `/m/CODE` with the page. Render ignores it. |
+| `wrangler.jsonc` | Repo root. Points Cloudflare at `web/public` and makes `/m/CODE` resolve to the page. |
 | `prototype-offline.html` | The earlier single-player prototype (no server). |
 
 Settings (environment variables): `PORT`, `BOT_DELAY_MS` (850), `TRICK_PAUSE_MS` (1500),
