@@ -11,6 +11,9 @@
 {
   "name": "barbudo",
   "compatibility_date": "2026-09-20",
+  // Turns on the barbudo.<subdomain>.workers.dev address. Without it the Worker deploys fine but
+  // has no URL at all, and the dashboard just says "No URLs enabled".
+  "workers_dev": true,
   "assets": {
     "directory": "./web/public",
     // Invite links (/m/KX7PQ) are real URLs with no file behind them — the client reads the code
