@@ -1,0 +1,20 @@
+// Cloudflare serves the pages; Render runs the game.
+//
+// This deploys web/public as a Worker that holds nothing but static files — no code of ours runs
+// on Cloudflare. It exists so the family never lands on Render's "service waking up" page: these
+// files are always awake, and the waking screen inside them explains the wait while the game
+// server gets up.
+//
+// `npx wrangler deploy` is the deploy command in the Cloudflare build settings; without this file
+// it has no idea where the files are and fails with "Could not detect a directory containing
+// static files".
+{
+  "name": "barbudo",
+  "compatibility_date": "2026-09-20",
+  "assets": {
+    "directory": "./web/public",
+    // Invite links (/m/KX7PQ) are real URLs with no file behind them — the client reads the code
+    // out of the path — so anything unmatched is answered with the page itself.
+    "not_found_handling": "single-page-application"
+  }
+}

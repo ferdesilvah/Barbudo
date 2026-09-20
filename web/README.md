@@ -38,15 +38,21 @@ from a phone shows Render's branding instead of ours — there's no app running 
 else. Putting the pages somewhere always awake fixes that: they're only files, and the server is
 only WebSockets.
 
-1. Cloudflare Pages › Create › connect the GitHub repo.
-2. Build command: leave empty. Build output directory: `web/public`.
-3. Share the `https://….pages.dev` link with the family instead of the Render one.
+1. Cloudflare dashboard › Workers & Pages › Create › connect the GitHub repo.
+2. Build command: empty. Deploy command: `npx wrangler deploy`. Root directory: `/`.
+3. Share the Cloudflare link with the family instead of the Render one.
+
+`wrangler.jsonc` at the repo root is what makes step 2 work — it points Cloudflare at `web/public`
+and says to answer anything unmatched with the page, which is how invite links (`/m/KX7PQ`) resolve.
+Without it the deploy fails with "Could not detect a directory containing static files". Nothing of
+ours runs on Cloudflare; it only hands out the seven files.
 
 Nothing else changes: `client.js` sends the socket to `barbudo.onrender.com` whenever the page
 isn't being served by the server itself, so `npm start`, a phone on your wifi and the Render URL
 opened directly all still work untouched. Moving the game server elsewhere means editing
-`GAME_SERVER` at the top of `public/client.js`. Netlify works the same way — same `_redirects`
-file, publish directory `web/public`.
+`GAME_SERVER` at the top of `public/client.js`. Cloudflare Pages or Netlify instead of a Worker:
+publish directory `web/public`, no build command — `public/_redirects` is there for them, since
+they read it and Workers uses `not_found_handling` in `wrangler.jsonc` instead.
 
 Tables still live in Render's memory, so the first table of the evening still waits for it to wake;
 the difference is that the family now waits on our own screen, with the mascot and an explanation,
