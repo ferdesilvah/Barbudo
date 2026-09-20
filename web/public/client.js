@@ -476,12 +476,12 @@ function notepadHTML(V) {
   }).join('');
   const pending = V.phase === 'gameOver' ? '' : `<tr><td>${V.scores.length + 1}</td>${'<td style="color:var(--faint);font-size:22px">…</td>'.repeat(N)}</tr>`;
   const headColor = p => { const c = COLORS[p.color % COLORS.length][0]; return c === 'var(--gold)' ? '#8A6412' : c; };
-  return `<div class="scrim" style="padding-bottom:96px"><div class="notepad"><div class="spiral">${'<i></i>'.repeat(6)}</div><div class="margin"></div>
+  return `<div class="scrim"><div class="np-wrap"><div class="notepad"><div class="spiral">${'<i></i>'.repeat(6)}</div><div class="margin"></div>
     <div class="np-head"><b>Barbudo</b><span>ronda ${V.round + 1} de ${V.schedule.length}</span></div>
     <div class="np-scroll"><table class="np-table"><thead><tr><th>ronda</th>${V.players.map((p, s) => `<th style="color:${headColor(p)}">${esc(nameOf(V, s))}</th>`).join('')}</tr></thead>
     <tbody>${rows}${pending}</tbody></table></div>
     <div class="np-foot">exacto = +pedido · cero exacto = +1<br>corto = −pedido · pasado = −jugadas</div></div>
-    <button class="big-btn np-close" data-act="closeOverlay">Volver a la mesa</button></div>`;
+    <button class="big-btn np-close" data-act="closeOverlay">Volver a la mesa</button></div></div>`;
 }
 
 function showReact(id, text) {

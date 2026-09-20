@@ -111,7 +111,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 .btn-row{display:flex;gap:12px}.btn-row .soft{width:120px;flex:none}
 
 /* Notepad */
-.notepad{position:relative;width:100%;max-width:400px;max-height:calc(100% - 90px);display:flex;flex-direction:column;border-radius:10px;border:2.5px solid var(--ink);background:var(--paper);box-shadow:0 8px 0 rgba(59,42,32,.35);transform:rotate(-1.2deg);overflow:hidden;animation:pop .3s}
+.notepad{position:relative;width:100%;max-width:400px;min-height:0;flex:0 1 auto;display:flex;flex-direction:column;border-radius:10px;border:2.5px solid var(--ink);background:var(--paper);box-shadow:0 8px 0 rgba(59,42,32,.35);transform:rotate(-1.2deg);overflow:hidden;animation:pop .3s}
 .notepad .spiral{height:26px;flex:none;background:var(--terra);border-bottom:2.5px solid var(--ink);display:flex;justify-content:space-evenly;align-items:center}
 .notepad .spiral i{width:10px;height:10px;border-radius:50%;background:var(--ink)}
 .notepad .margin{position:absolute;left:58px;top:26px;bottom:0;width:2px;background:rgba(212,100,58,.55)}
@@ -125,7 +125,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 .np-table td b{font-size:26px}.np-table td em{font-style:normal;font-size:17px;font-weight:700;margin-left:3px}
 .np-table td.lead::after{content:"";position:absolute;left:4px;right:4px;top:4px;bottom:2px;border:2.5px solid var(--terra);border-radius:50%;transform:rotate(-6deg)}
 .np-foot{font-family:var(--hand);font-size:19px;font-weight:600;color:var(--muted);padding:10px 14px 14px 68px;line-height:1.2}
-.np-close{position:absolute;left:20px;right:20px;bottom:18px}
+.np-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;max-width:400px;max-height:100%}
+.np-close{flex:none;width:100%}
 
 /* Lobby */
 .lobby{position:absolute;inset:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:24px 20px 20px;gap:14px;box-sizing:border-box}
