@@ -31,6 +31,27 @@ minute. Tables in progress survive only while the server is awake — fine for a
 **Fly.io** (always-on, keeps tables across restarts): `fly launch` in `web/` (uses the `Dockerfile`),
 then `fly volumes create data` and mount it at `/data`.
 
+### Pages on a static host, game on Render
+
+While Render is asleep it answers every request with *its* waking-up page, so the very first visit
+from a phone shows Render's branding instead of ours — there's no app running yet to show anything
+else. Putting the pages somewhere always awake fixes that: they're only files, and the server is
+only WebSockets.
+
+1. Cloudflare Pages › Create › connect the GitHub repo.
+2. Build command: leave empty. Build output directory: `web/public`.
+3. Share the `https://….pages.dev` link with the family instead of the Render one.
+
+Nothing else changes: `client.js` sends the socket to `barbudo.onrender.com` whenever the page
+isn't being served by the server itself, so `npm start`, a phone on your wifi and the Render URL
+opened directly all still work untouched. Moving the game server elsewhere means editing
+`GAME_SERVER` at the top of `public/client.js`. Netlify works the same way — same `_redirects`
+file, publish directory `web/public`.
+
+Tables still live in Render's memory, so the first table of the evening still waits for it to wake;
+the difference is that the family now waits on our own screen, with the mascot and an explanation,
+and the wait starts the moment they open the link rather than after Render's page.
+
 ## How to play online
 
 1. **Crear una mesa** → you get a 5-letter code and an **Invitar** button (shares the link).
@@ -50,6 +71,9 @@ them until they come back. They rejoin by opening the same link on the same phon
 | `server.js` | Tables, seats, turn order, reconnection, bot cover, saves tables to `data/rooms.json`. The only place that sees every hand. |
 | `public/client.js` | The cozy table. Draws what the server says *this* player may see; sends moves. |
 | `public/style.css`, `online.css` | The look from the design canvas. |
+| `public/index.html` | Also holds the waking screen — markup, styles and its little script inline, since on a cold start `client.js` is itself still on its way. |
+| `public/sw.js` | Keeps a copy of the shell so the page opens instantly, and refuses to cache anything that doesn't look like Barbudo. |
+| `public/_redirects` | Tells a static host to answer `/m/CODE` with the page. Render ignores it. |
 | `prototype-offline.html` | The earlier single-player prototype (no server). |
 
 Settings (environment variables): `PORT`, `BOT_DELAY_MS` (850), `TRICK_PAUSE_MS` (1500),

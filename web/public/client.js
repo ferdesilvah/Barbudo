@@ -29,6 +29,16 @@ const UI = { sel: null, bid: null, pausing: false, sweeping: false, shown: [], w
              overlay: null, tray: false, reacts: {}, lastSeq: -1, drawTimer: null, pauseTimer: null };
 
 // ─────────────────────────── Connection ───────────────────────────
+// The pages can be served from anywhere — they're just files — while the game server stays on
+// Render. Same origin whenever the server is serving the pages itself (npm start, a phone on the
+// wifi, or barbudo.onrender.com opened directly); Render otherwise. Set window.BARBUDO_SERVER
+// before this file loads to point somewhere else.
+const GAME_SERVER = 'barbudo.onrender.com';
+const isLocal = h => /^(localhost|127\.0\.0\.1|\[::1\]|\d+\.\d+\.\d+\.\d+)(:\d+)?$/.test(h);
+const SERVER = window.BARBUDO_SERVER
+  || (isLocal(location.host) || location.hostname.endsWith('.onrender.com') ? location.host : GAME_SERVER);
+const API = `${isLocal(SERVER) ? 'http' : 'https'}://${SERVER}`;
+
 // The free plan sleeps after ~15 minutes without visitors and takes about a minute to wake up.
 // While that happens the socket just keeps failing, so we also poll /healthz: a plain GET both
 // triggers the wake-up and tells us the moment the server answers again, instead of sitting out
@@ -40,7 +50,7 @@ let wakeTimer = null, probing = false;
 
 function connect() {
   clearTimeout(S.retryTimer);
-  const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
+  const ws = new WebSocket(`${isLocal(SERVER) ? 'ws' : 'wss'}://${SERVER}/ws`);
   S.ws = ws;
   ws.onopen = () => {
     S.online = true; S.everOn = true; S.retry = 0; connEl.hidden = true;
@@ -66,7 +76,7 @@ function pingHealth() {
   // A sleeping server holds the request open for the whole wake-up, so never stack these.
   if (probing || S.online || navigator.onLine === false) return;
   probing = true;
-  fetch('/healthz', { cache: 'no-store' })
+  fetch(`${API}/healthz`, { cache: 'no-store' })
     .then(r => { if (r.ok) retryNow(); })
     .catch(() => {})
     .finally(() => { probing = false; });

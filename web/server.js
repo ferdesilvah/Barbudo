@@ -331,7 +331,13 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
-  if (url.pathname === '/healthz') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('ok'); }
+  // Open to any origin: the pages may be served from a static host while the game lives here, and
+  // this is how a browser checks whether we're awake. It says nothing but "ok". (WebSockets don't
+  // go through CORS at all, so /ws needs nothing.)
+  if (url.pathname === '/healthz') {
+    res.writeHead(200, { 'content-type': 'text/plain', 'access-control-allow-origin': '*' });
+    return res.end('ok');
+  }
   let rel = url.pathname === '/' || /^\/m\/[A-Z0-9]{5}$/i.test(url.pathname) ? '/index.html' : url.pathname;
   const base = rel.startsWith('/shared/') ? ROOT : path.join(ROOT, 'public');
   const file = path.normalize(path.join(base, rel));
